@@ -4,20 +4,18 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public class Main {
-    public static String generateNationalInsuranceNumber(List<String> nationalInsuranceValues){
+    private static String generateNationalInsuranceNumber(List<String> nationalInsuranceValues){
         List<String> nationalInsuranceNumber = new ArrayList<>();
             nationalInsuranceValues.add(nationalInsuranceValues.size()-1 , String.valueOf(Math.round(Math.random() * (9999 - 1000) + 1000)));
             nationalInsuranceValues.add(2, " ");
@@ -26,9 +24,9 @@ public class Main {
             nationalInsuranceNumber.add(String.join("", nationalInsuranceValues));
         return nationalInsuranceNumber.stream().findFirst().get();
     }
-    public static List<List<String>> determineNationalInsuranceNumber(List<List<String>> dataset) {
+    private static List<List<String>> determineNationalInsuranceNumber(List<List<String>> dataset) {
         List<String> nationalInsuranceValues = new ArrayList<>();
-        String nationalInsuranceNumber = null;
+        String nationalInsuranceNumber;
         List<List<String>> nationalInsuranceValuesList = new ArrayList<>();
         List<String> headers = Arrays.asList("First names","Last name","Date of Birth","Country of Birth");
         for (List<String> user: dataset) {
@@ -54,7 +52,7 @@ public class Main {
         }
         return nationalInsuranceValuesList;
     }
-    public static List<List<String>> formatFile(List<List<String>> dataset) {
+    private static List<List<String>> formatFile(List<List<String>> dataset) {
 
         List<List<String>> formattedList = new ArrayList<>();
 
@@ -71,10 +69,10 @@ public class Main {
 
         return formattedList;
     }
-    private static List<List<String>> readDatasetFile() throws IOException {
+    private static List<List<String>> readDatasetFile(String path) throws IOException {
         List<List<String>> records = new ArrayList<>();
-        try (CSVReader csvReader = new CSVReader(new FileReader("src/test/resources/310157 HEO SDET - people data set.csv"));) {
-            String[] values = null;
+        try (CSVReader csvReader = new CSVReader(new FileReader(path))) {
+            String[] values;
             while ((values = csvReader.readNext()) != null) {
                 records.add(Arrays.asList(values));
             }
@@ -91,7 +89,6 @@ public class Main {
         }
         return true;
     }
-
     private static List<String[]> formatData(List<List<String>> data) {
         List<String[]> formattedData = new ArrayList<>();
         for (List<String> users : data) {
@@ -100,16 +97,77 @@ public class Main {
         }
         return formattedData;
     }
-    public static void main(String[] args) throws IOException {
-        Boolean nationalInsuranceNumber = null;
-        File partOneFile = new File("D:\\Test\\HEOSDETPuzzle\\src\\test\\resources\\Part_1_Puzzle.csv");
-        if(partOneFile.exists()) {
-            Files.delete(partOneFile.toPath());
+    private static HashMap<String, Integer> nationalInsurancePerCountry(List<List<String>> data) {
+        HashMap<String,Integer> result = new HashMap<>();
+        for (List<String> users: data) {
+            for (int i = 0; i < users.size(); i++) {
+                if(i == 4) {
+                    String countryCode = String.valueOf(users.get(i).charAt(users.get(i).length()-1));
+                    if(countryCode.equalsIgnoreCase("w")) {
+                        if(result.containsKey("Wales")){
+                            result.put("Wales", result.get("Wales") + 1);
+                        } else {
+                            result.putIfAbsent("Wales", 1);
+                        }
+                    } else if(countryCode.equalsIgnoreCase("e")) {
+                        if(result.containsKey("England")){
+                            result.put("England", result.get("England") + 1);
+                        } else {
+                            result.putIfAbsent("England", 1);
+                        }
+                    } else if(countryCode.equalsIgnoreCase("s")) {
+                        if(result.containsKey("Scotland")){
+                            result.put("Scotland", result.get("Scotland") + 1);
+                        } else {
+                            result.putIfAbsent("Scotland", 1);
+                        }
+                    } else if(countryCode.equalsIgnoreCase("n")) {
+                        if(result.containsKey("Northern Ireland")){
+                            result.put("Northern Ireland", result.get("Northern Ireland") + 1);
+                        } else {
+                            result.putIfAbsent("Northern Ireland", 1);
+                        }
+                    } else {
+                        if(result.containsKey("Non-UK")){
+                            result.put("Non-UK", result.get("Non-UK") + 1);
+                        } else {
+                            result.putIfAbsent("Non-UK", 1);
+                        }
+                    }
+                }
+            }
         }
-        nationalInsuranceNumber = writeFileToCSV(
+        return result;
+    }
+
+    public static void displayNationalInsurancePerCountry(HashMap<String, Integer> nationalInsurancePerCountryTable) {
+        System.out.println("Part-2");
+        for (Map.Entry<String, Integer> result: nationalInsurancePerCountryTable.entrySet()) {
+            System.out.println("Key: " + result.getKey() + " Value: " + result.getValue());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        //region Part 1 of the HEO Puzzle
+        Path partOneFilePath = Paths.get("src/test/resources/Part_1_Puzzle.csv");
+        boolean nationalInsuranceNumberFileGenerated;
+        if(partOneFilePath.toFile().exists()) {
+            Files.delete(partOneFilePath);
+        }
+        nationalInsuranceNumberFileGenerated = writeFileToCSV(
                 determineNationalInsuranceNumber(
-                formatFile(readDatasetFile())
+                        formatFile(readDatasetFile("src/test/resources/310157 HEO SDET - people data set.csv"))
                 )
         );
+        if(nationalInsuranceNumberFileGenerated) {
+            System.out.println("File has been generated for Part-1 of the puzzle at " + partOneFilePath.toAbsolutePath());
+        }
+        //endregion
+        //region Part 2 of the HEO Puzzle
+        displayNationalInsurancePerCountry(
+                        (nationalInsurancePerCountry(
+                        readDatasetFile(partOneFilePath.toAbsolutePath().toString())))
+        );
+        //endregion
     }
 }
