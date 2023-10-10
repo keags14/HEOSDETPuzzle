@@ -32,8 +32,12 @@ public class Main {
             if(!new HashSet<>(user).containsAll(headers)){
                 for (String column: user) {
                     boolean isSpecificValue = column.equals("Wales") || column.equals("England") || column.equals("Scotland") || column.equals("Northern Ireland");
-                    if(Character.isAlphabetic(column.charAt(0)) && !isSpecificValue) {
-                        nationalInsuranceValues.add(String.valueOf(column.charAt(0)));
+                    if(Character.isAlphabetic(column.charAt(0))) {
+                        if(!isSpecificValue && user.indexOf(column) == 3){
+                            nationalInsuranceValues.add("O");
+                        } else {
+                            nationalInsuranceValues.add(String.valueOf(column.charAt(0)));
+                        }
                     } else if(Character.isDigit(column.charAt(0))){
                         String date = LocalDate.parse(column).format(DateTimeFormatter.ofPattern("yy"));
                         nationalInsuranceValues.add(date);
